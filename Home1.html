@@ -1,0 +1,198 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<script src="js/jquery-1.6.4.min.js"></script>
+		<script src="http://maps.google.com/maps/api/js?sensor=false&language=en&region=GB"></script>
+		<script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?sensor=true&libraries=places"></script>
+		<script src="http://www.google.com/jsapi"></script>
+		<style media="screen" type="text/css">
+			html { height: 100%; } 
+			#map { width:700px; height:600px; } 
+			#route { width:700px; height:600px; overflow-y:auto;} 	
+			#method {
+				position: absolute;
+				left: 75px;
+				top:15px;
+				padding:10px;
+				opacity: .9;
+				-moz-opacity: .9;
+				z-index: 10;
+				background-color:#fff;
+				border-radius:3px;
+				-moz-border-radius:3px;
+				-webkit-border-radius:3px;
+			}
+		
+		</style>
+	</head>
+	<body>
+		<div id="map"></div>
+		<div>
+		<b>Select a place from the dropdown to get directions: </b>
+			<select id="end" onchange="calcRoute();">
+			  <option value="Carousel Center, Syracuse">Carousel</option>
+			  <option value="ShoppingTown Mall, Syracuse">ShoppingTown</option>
+			</select>
+		</div>
+		<script src="js/jquery-1.6.4.min.js"></script>
+		<script>
+				var service;
+				var infoWindow;
+				var initialLocation;
+				var directionsService; //service that provides directions to get to our destination
+				var directionsDisplay; //renderer that draws directions on map
+				var destinationName = "Carousel Center, Syracuse, NY"; // hardcoded destination
+				$(document).ready(function(){ 
+					
+					if(navigator.geolocation) {					
+						
+						navigator.geolocation.getCurrentPosition(function(position) 
+						{
+							showMapAndRoute({
+								"lat": position.coords.latitude,
+								"lng": position.coords.longitude
+							});
+						});	
+						
+						navigator.geolocation.getCurrentPosition(position, error);
+					}	
+					else
+					{
+						alert('Your browser does not support Geolocation!');
+					}
+				});
+					
+				function showMapAndRoute(l)
+				{
+					/* Set the map centered at current location */
+					
+					initialLocation = new google.maps.LatLng(l.lat,l.lng);
+					var mapDiv = document.getElementById('map'); 
+					
+					var map = new google.maps.Map(mapDiv, {
+						center: initialLocation,
+						zoom: 15,
+						mapTypeId: google.maps.MapTypeId.ROADMAP
+					});
+		
+					var marker = new google.maps.Marker({
+						position: initialLocation,
+						map: map,
+						title: "You are here",
+						animation: google.maps.Animation.BOUNCE
+					});
+					marker.setMap(map);
+
+					/* Display Bicycling routes on the map around the current location  */
+						
+					var bikeLayer = new google.maps.BicyclingLayer();
+					bikeLayer.setMap(map);
+							
+					/* Display Traffic around the current location  */
+							
+					var trafficLayer = new google.maps.TrafficLayer();
+					trafficLayer.setMap(map);					
+					
+					
+					var request = {
+							origin: initialLocation,
+							destination: destinationName,
+							travelMode: google.maps.DirectionsTravelMode.DRIVING
+						};
+						
+						directionsService = new google.maps.DirectionsService();
+						
+						//initiate a request to the Directions service
+						directionsService.route(request, function(result, status) {
+							if (status == google.maps.DirectionsStatus.OK) {
+								directionsDisplay.setDirections(result);
+							}
+						});
+					
+					directionsDisplay = new google.maps.DirectionsRenderer();
+					directionsDisplay.setMap(map);
+					directionsDisplay.setPanel(document.getElementById("route"));
+						
+					var placesRequest = {
+						location: initialLocation,
+						radius: '500',
+						types: ['store', 'restaurant']
+					};
+					infoWindow = new google.maps.InfoWindow();
+					service = new google.maps.places.PlacesService(map);
+					service.search(placesRequest, callback);
+	
+					function callback(results, status) {
+					
+					  if (status == google.maps.places.PlacesServiceStatus.OK) {
+						for (var i = 0; i < results.length; i++) {
+						  var place = results[i];
+						  createMarker(results[i]); 
+						}
+					  }
+					}
+					
+					/* Create markers at the places of interest */
+					
+					function createMarker(place) {
+						var placeLoc = place.geometry.location;
+						var markers = new google.maps.Marker({
+						  map: map,
+						  position: place.geometry.location,
+						  animation: google.maps.Animation.DROP
+						});
+
+						google.maps.event.addListener(markers, 'click', function() {
+						  infoWindow.setContent(place.name + place.vicinity);
+						  infoWindow.open(map, this);
+						});
+					}
+				}
+				
+				/* Function to calculate driving route between two places */
+				
+				function calcRoute() {
+						var end = document.getElementById("end").value;
+						  
+						var request = {
+							origin: initialLocation,
+							destination: end,
+							travelMode: google.maps.DirectionsTravelMode.DRIVING
+						};
+						
+						directionsService = new google.maps.DirectionsService();
+						
+						//initiate a request to the Directions service
+						directionsService.route(request, function(result, status) {
+							if (status == google.maps.DirectionsStatus.OK) {
+								directionsDisplay.setDirections(result);
+							}
+						});
+				}
+
+				/* Error Handling */
+				
+				function error(e)
+				{
+					switch(e.code)
+					{
+						case e.TIMEOUT:
+						alert ('Timeout');
+						break;
+						case e.POSITION_UNAVAILABLE:
+						alert ('Position unavailable');
+						break;
+						case e.PERMISSION_DENIED:
+						alert ('Permission denied');
+						break;
+						case e.UNKNOWN_ERROR:
+						alert ('Unknown error');
+						break;
+					}
+				}
+ 
+		</script>
+	
+	</body>
+</html>
+
